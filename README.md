@@ -1,6 +1,8 @@
 # sigit
 Little helper to ease the process of providing signatures for GitHub release archives.
 
+*Tested on Arch Linux*.
+
 **Usage**: Downloads a (GitHub) release archive and compares it to a local folder.
 
        python3 sigit.py [-h] [--silent] [--verbose] url path
