@@ -17,6 +17,9 @@ VERBOSITY_LEVEL_ULTRA = 2
 
 verbosity_level = VERBOSITY_LEVEL_NORMAL
 
+dir_names_to_ignore = []
+file_names_to_ignore = []
+
 
 def cond_print(what, condition):
     """
@@ -40,6 +43,18 @@ def parse_command_line_arguments():
                         dest='verbosity',
                         default=VERBOSITY_LEVEL_NORMAL,
                         help='set the verbosity level (0 - silent, 1 - normal, 2 - ultra)')
+    parser.add_argument('-d', '--ignore-dir',
+                        metavar='dir_name_to_ignore',
+                        type=str,
+                        action='append',
+                        dest='dir_names_to_ignore',
+                        help='directory name to ignore, e.g. ".git" - may be specified multiple times')
+    parser.add_argument('-f', '--ignore-file',
+                        metavar='file_name_to_ignore',
+                        type=str,
+                        action='append',
+                        dest='file_names_to_ignore',
+                        help='file name to ignore, e.g. ".gitignore" - may be specified multiple times')
     parser.add_argument('url', metavar='url', type=str, help='download URL')
     parser.add_argument('path', metavar='path', type=str, help='path to local folder')
     return parser.parse_args()
@@ -65,6 +80,7 @@ def download_archive(url, dst):
     :param url: Url to download.
     :param dst: Destination for the downloaded file.
     """
+    global verbosity_level
     cond_print('Downloading "{}" ...'.format(url), verbosity_level > VERBOSITY_LEVEL_SILENT)
     urllib.request.urlretrieve(url, dst)
     cond_print('Download complete!', verbosity_level > VERBOSITY_LEVEL_SILENT)
@@ -77,6 +93,7 @@ def unpack_archive(src, dst):
     :param dst: Destination folder.
     :return: Folder path unpacked from the archive.
     """
+    global verbosity_level
     cond_print('Unpacking ...', verbosity_level > VERBOSITY_LEVEL_SILENT)
     shutil.unpack_archive(src, dst)
     cond_print('Unpacking complete!', verbosity_level > VERBOSITY_LEVEL_SILENT)
@@ -115,6 +132,7 @@ def compare_folders(folder1, folder2):
     :param folder2: Path to folder 2.
     :return: True on success, else an exception is raised.
     """
+    global verbosity_level, dir_names_to_ignore, file_names_to_ignore
     cond_print('Comparing "{}" to "{}" ...'.format(folder1, folder2), verbosity_level > VERBOSITY_LEVEL_SILENT)
     folder1_dir_list = []
     folder1_file_list = []
@@ -124,20 +142,32 @@ def compare_folders(folder1, folder2):
     for root, dirs, files in os.walk(folder1):
         for dir_ in dirs:
             full_dir_path = os.path.join(root, dir_)
+            if dir_ in dir_names_to_ignore:
+                cond_print('Ignoring directory "{}".'.format(full_dir_path), verbosity_level > VERBOSITY_LEVEL_SILENT)
+                continue
             clean_dir_path = full_dir_path.replace(folder1, '', 1)
             folder1_dir_list.append(clean_dir_path)
         for file_ in files:
             full_file_path = os.path.join(root, file_)
+            if file_ in file_names_to_ignore:
+                cond_print('Ignoring file "{}".'.format(full_file_path), verbosity_level > VERBOSITY_LEVEL_SILENT)
+                continue
             clean_file_path = full_file_path.replace(folder1, '', 1)
             folder1_file_list.append(clean_file_path)
     # Get all directories & files as lists for the local path
     for root, dirs, files in os.walk(folder2):
         for dir_ in dirs:
             full_dir_path = os.path.join(root, dir_)
+            if dir_ in dir_names_to_ignore:
+                cond_print('Ignoring directory "{}".'.format(full_dir_path), verbosity_level > VERBOSITY_LEVEL_SILENT)
+                continue
             clean_dir_path = full_dir_path.replace(folder2, '', 1)
             folder2_dir_list.append(clean_dir_path)
         for file_ in files:
             full_file_path = os.path.join(root, file_)
+            if file_ in file_names_to_ignore:
+                cond_print('Ignoring file "{}".'.format(full_file_path), verbosity_level > VERBOSITY_LEVEL_SILENT)
+                continue
             clean_file_path = full_file_path.replace(folder2, '', 1)
             folder2_file_list.append(clean_file_path)
     folder1_dir_list.sort()
@@ -200,11 +230,16 @@ def sighlp_cmp():
     Main functionality.
     :return: 0 if compared equal, 1 else or on error.
     """
+    global verbosity_level, dir_names_to_ignore, file_names_to_ignore
     # Preset result to False.
     content_is_equal = False
     # Parse commandline arguments
     args = parse_command_line_arguments()
     verbosity_level = args.verbosity
+    if args.dir_names_to_ignore is not None:
+        dir_names_to_ignore = args.dir_names_to_ignore
+    if args.file_names_to_ignore is not None:
+        file_names_to_ignore = args.file_names_to_ignore
     tmp_dir, tmp_file, tmp_unarchived_dir = create_tmp_paths(args.url)
     # This is the main logic: Try to download the file, extract it, convert the file and directory lists to a sorted,
     # easily comparable format and then compare everyhting (directories by name, files by name and hash).
