@@ -140,11 +140,12 @@ def compare_folders(folder1, folder2):
     folder2_file_list = []
     # Get all directories & files as lists for folder1
     for root, dirs, files in os.walk(folder1):
+        for ignored_dir in dir_names_to_ignore:
+            if ignored_dir in dirs:
+                dirs.remove(ignored_dir)
+                cond_print('Ignoring directory "{}".'.format(os.path.join(root, ignored_dir)), verbosity_level > VERBOSITY_LEVEL_SILENT)
         for dir_ in dirs:
             full_dir_path = os.path.join(root, dir_)
-            if dir_ in dir_names_to_ignore:
-                cond_print('Ignoring directory "{}".'.format(full_dir_path), verbosity_level > VERBOSITY_LEVEL_SILENT)
-                continue
             clean_dir_path = full_dir_path.replace(folder1, '', 1)
             folder1_dir_list.append(clean_dir_path)
         for file_ in files:
@@ -156,11 +157,12 @@ def compare_folders(folder1, folder2):
             folder1_file_list.append(clean_file_path)
     # Get all directories & files as lists for the local path
     for root, dirs, files in os.walk(folder2):
+        for ignored_dir in dir_names_to_ignore:
+            if ignored_dir in dirs:
+                dirs.remove(ignored_dir)
+                cond_print('Ignoring directory "{}".'.format(os.path.join(root, ignored_dir)), verbosity_level > VERBOSITY_LEVEL_SILENT)
         for dir_ in dirs:
             full_dir_path = os.path.join(root, dir_)
-            if dir_ in dir_names_to_ignore:
-                cond_print('Ignoring directory "{}".'.format(full_dir_path), verbosity_level > VERBOSITY_LEVEL_SILENT)
-                continue
             clean_dir_path = full_dir_path.replace(folder2, '', 1)
             folder2_dir_list.append(clean_dir_path)
         for file_ in files:
